@@ -32,7 +32,7 @@ class CloudInitISO:
         self.metadata = {}
 
         self.iso = PyCdlib()
-        self.iso.new(vol_ident="cidata", rock_ridge="1.09")
+        self.iso.new(vol_ident="cidata", rock_ridge="1.09", interchange_level=3)
 
     def add_user(self, name, passwd, shell="/bin/bash", locked=False, groups=[]):
         user = dict(name=name, shell=shell, lock_passwd=locked, groups=groups)
@@ -56,7 +56,7 @@ class CloudInitISO:
 
     def _add_file(self, filename, content):
         iso_name = "/" + "".join(
-            [x for x in filename.upper() if x in ascii_uppercase][:8]
+            c if c in ascii_uppercase else "_" for c in filename.upper()
         )
         self.iso.add_fp(
             BytesIO(content), len(content), iso_path=iso_name, rr_name=filename
