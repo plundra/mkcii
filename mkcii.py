@@ -16,11 +16,10 @@
 
 import argparse
 import sys
-from io import BytesIO
-from string import ascii_uppercase
 
 import yaml
-from pycdlib import PyCdlib
+
+from easyiso import EasyISO
 
 
 class CloudInitISO:
@@ -31,8 +30,7 @@ class CloudInitISO:
         self.userdata = {}
         self.metadata = {}
 
-        self.iso = PyCdlib()
-        self.iso.new(vol_ident="cidata", rock_ridge="1.09", interchange_level=3)
+        self.iso = EasyISO("cidata")
 
     def add_user(self, name, passwd, shell="/bin/bash", locked=False, groups=[]):
         user = dict(name=name, shell=shell, lock_passwd=locked, groups=groups)
@@ -54,14 +52,6 @@ class CloudInitISO:
 
         self.network["ethernets"][eth] = ethernet
 
-    def _add_file(self, filename, content):
-        iso_name = "/" + "".join(
-            c if c in ascii_uppercase else "_" for c in filename.upper()
-        )
-        self.iso.add_fp(
-            BytesIO(content), len(content), iso_path=iso_name, rr_name=filename
-        )
-
     def _gen_userdata(self):
         self.userdata["users"] = self.users
         self.userdata["final_message"] = "### BOOTED ###"
@@ -81,21 +71,21 @@ class CloudInitISO:
     def _gen_metadata(self):
         self.metadata["local-hostname"] = self.hostname
 
-    def dump(self, fp):
+    def dump(self):
         # Pupulate user-data
         self._gen_userdata()
-        self._add_file(
+        self.iso.add_file(
             "user-data", b"#cloud-config\n" + yaml.dump(self.userdata).encode("utf-8")
         )
 
         # Pupulate meta-data
         self._gen_metadata()
-        self._add_file("meta-data", yaml.dump(self.metadata).encode("utf-8"))
+        self.iso.add_file("meta-data", yaml.dump(self.metadata).encode("utf-8"))
 
         # Pupulate network-config
-        self._add_file("network-config", yaml.dump(self.network).encode("utf-8"))
+        self.iso.add_file("network-config", yaml.dump(self.network).encode("utf-8"))
 
-        self.iso.write_fp(fp)
+        return self.iso.get_iso()
 
 
 if __name__ == "__main__":
@@ -135,7 +125,7 @@ if __name__ == "__main__":
         output = sys.stdout.buffer
 
     if output:
-        CII.dump(output)
+        output.write(CII.dump())
     else:
         print("Won't write data to terminal (redirect or specify -o)")
         exit(1)
