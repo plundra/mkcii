@@ -88,7 +88,7 @@ class CloudInitISO:
         return self.iso.get_iso()
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description="Generate cloud-init cidata iso")
     parser.add_argument("-o", dest="output")
     parser.add_argument("-H", dest="hostname", required=True)
@@ -129,3 +129,7 @@ if __name__ == "__main__":
     else:
         print("Won't write data to terminal (redirect or specify -o)")
         exit(1)
+
+
+if __name__ == "__main__":
+    main()
