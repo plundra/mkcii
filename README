@@ -14,8 +14,9 @@ if serves my needs very well.
 
 Usage
 -----
-./mkcii.py \
+$ mkcii \
     -H test-vm1 -u myusername -p changeme -g sudo \
+    -s "$(cat ~/.id_ed25519.pub)" -s "$(cat ~/myotherkey.pub)" \
     -e enp0s1 -i 10.0.2.200/24 -d 10.0.2.2 -n 10.0.2.3 \
     -o seed.iso
 

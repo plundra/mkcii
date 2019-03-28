@@ -32,13 +32,15 @@ class CloudInitISO:
 
         self.iso = EasyISO("cidata")
 
-    def add_user(self, name, passwd, shell="/bin/bash", locked=False, groups=[]):
-        user = dict(name=name, shell=shell, lock_passwd=locked, groups=groups)
+    def add_user(self, name, passwd=None, shell="/bin/bash", locked=False, groups=[], sshkeys=[]):
+        user = dict(
+            name=name, shell=shell, lock_passwd=locked, groups=groups, ssh_authorized_keys=sshkeys
+        )
 
         # Assume hashed password if it starts with and has multiple dollar signs
-        if passwd.startswith("$") and passwd.count("$") >= 2:
+        if passwd and passwd.startswith("$") and passwd.count("$") >= 2:
             user.update(dict(passwd="passwd"))
-        else:
+        elif passwd:
             user.update(dict(plain_text_passwd=passwd))
         self.users.append(user)
 
@@ -57,7 +59,6 @@ class CloudInitISO:
         self.userdata["final_message"] = "### BOOTED ###"
         self.userdata["power_state"] = dict(mode="reboot")
         self.userdata["runcmd"] = [
-            ["apt", "purge", "-y", "snapd"],
             [
                 "systemctl",
                 "disable",
@@ -65,7 +66,7 @@ class CloudInitISO:
                 "cloud-init-local",
                 "cloud-config",
                 "cloud-final",
-            ],
+            ]
         ]
 
     def _gen_metadata(self):
@@ -94,7 +95,8 @@ def main():
     parser.add_argument("-H", dest="hostname", required=True)
     parser.add_argument("-u", dest="username", required=True)
     parser.add_argument("-g", dest="group", action="append")
-    parser.add_argument("-p", dest="passwd", required=True)
+    parser.add_argument("-p", dest="passwd")
+    parser.add_argument("-s", dest="sshkey", action="append")
     parser.add_argument("-e", dest="ethernet")
     parser.add_argument("-i", dest="cidr", metavar="IPV4/NN", action="append")
     parser.add_argument("-d", dest="gateway")
@@ -106,7 +108,7 @@ def main():
         parser.error("-e requires -i to be set")
 
     CII = CloudInitISO(hostname=args.hostname)
-    CII.add_user(args.username, args.passwd, groups=args.group)
+    CII.add_user(args.username, args.passwd, groups=args.group, sshkeys=args.sshkey)
 
     # Handle ethernet interfaces
     if args.ethernet:
